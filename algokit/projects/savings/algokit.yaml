@@ -1,0 +1,10 @@
+name: savings
+type: contract
+
+source_dir: smart_contracts
+
+build:
+  command: algokit compile python smart_contracts/savings_vault.py
+
+deploy:
+  command: algokit deploy --network testnet
