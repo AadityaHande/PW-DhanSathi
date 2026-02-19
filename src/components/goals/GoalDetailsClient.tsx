@@ -15,12 +15,14 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAchievementCoachAdvice } from '@/ai/flows/ai-achievement-coach-flow';
 import { getGoalOnChainState, withdrawFromGoal } from '@/lib/blockchain';
+import { mintGoalAchievementNFT } from '@/lib/nft';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { calculateFinancialHealth } from '@/lib/financial-health';
 import { FinancialHealthIndicator } from './FinancialHealthIndicator';
-import { getGoalById } from '@/lib/local-store';
+import { getGoalById, getGoalNFT, saveGoalNFT } from '@/lib/local-store';
+import type { GoalNFT } from '@/lib/types';
 
 type GoalDetailsClientProps = {
   goal: Goal;
@@ -38,6 +40,8 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
   const [achievementInfo, setAchievementInfo] = useState<AchievementInfo | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isMintingNFT, setIsMintingNFT] = useState(false);
+  const [goalNFT, setGoalNFT] = useState<GoalNFT | null>(null);
   const [latestTxId, setLatestTxId] = useState<string | null>(null);
 
   const { activeAddress, signTransactions } = useWallet();
@@ -59,6 +63,9 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
           setLatestTxId(sortedDeposits[0].txId);
         }
       }
+
+      // Load any existing NFT record for this goal
+      setGoalNFT(getGoalNFT(goal.id));
       
     } catch (error) {
       console.error("Failed to fetch on-chain data:", error);
@@ -128,6 +135,39 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
       toast({ variant: 'destructive', title: "Withdrawal Failed", description: error instanceof Error ? error.message : "An unknown error occurred." });
     } finally {
       setIsWithdrawing(false);
+    }
+  };
+
+  const handleMintNFT = async () => {
+    if (!activeAddress || !onChainGoal) {
+      toast({ variant: 'destructive', title: "Cannot Mint NFT", description: "Please connect your wallet." });
+      return;
+    }
+    if (!onChainGoal.goalCompleted) {
+      toast({ variant: 'destructive', title: "Goal Not Completed", description: "Complete your savings goal to mint an achievement NFT." });
+      return;
+    }
+    setIsMintingNFT(true);
+    try {
+      toast({ title: "Minting NFT", description: "Please check your wallet to approve the transaction." });
+      const result = await mintGoalAchievementNFT(
+        activeAddress,
+        goal.name,
+        goal.appId,
+        onChainGoal.targetAmount,
+        onChainGoal.totalSaved,
+        signTransactions,
+      );
+      const nft: GoalNFT = { assetId: result.assetId, txId: result.txId, mintedAt: new Date().toISOString() };
+      saveGoalNFT(goal.id, nft);
+      setGoalNFT(nft);
+      setLatestTxId(result.txId);
+      toast({ title: "Achievement NFT Minted! 🎉", description: `Asset ID: ${result.assetId}` });
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: "NFT Minting Failed", description: error instanceof Error ? error.message : "An unknown error occurred." });
+    } finally {
+      setIsMintingNFT(false);
     }
   };
 
@@ -263,6 +303,34 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
                 {isWithdrawing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2" />}
                 {isWithdrawing ? "Withdrawing..." : `Withdraw ${formatCurrency(microAlgosToAlgos(onChainGoal.balance))}`}
               </Button>
+           )}
+
+           {status === 'completed' && !goalNFT && (
+             <Button onClick={handleMintNFT} disabled={isMintingNFT || !activeAddress} className="w-full">
+                {isMintingNFT ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Award className="mr-2" />}
+                {isMintingNFT ? "Minting Achievement NFT..." : "Mint Achievement NFT 🏆"}
+              </Button>
+           )}
+
+           {goalNFT && (
+             <Card className="bg-accent/10 border-accent">
+                <CardHeader className="flex-row items-center gap-4 space-y-0 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-accent-foreground">
+                        <Award className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <CardTitle className="text-lg">Achievement NFT Minted!</CardTitle>
+                        <CardDescription className="text-xs">
+                            Asset ID: {goalNFT.assetId}
+                        </CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                    <Link href={`https://testnet.explorer.perawallet.app/asset/${goalNFT.assetId}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-sm">
+                        View NFT on Explorer <ExternalLink className="ml-1 h-3 w-3" />
+                    </Link>
+                </CardContent>
+             </Card>
            )}
         </CardContent>
       </Card>
