@@ -32,6 +32,11 @@ This hybrid model ensures a smooth user experience while guaranteeing the securi
 *   **Deployed App ID (TestNet):** `755771019`
 *   **Testnet Explorer Link:** `https://testnet.explorer.perawallet.app/applications/755771019`
 
+## 🔗 AlgoExplorer
+
+View the deployed TestNet application on AlgoExplorer:
+[https://testnet.algoexplorer.io/application/755771019](https://testnet.algoexplorer.io/application/755771019)
+
 ## 5. Architecture Overview
 
 The application is composed of several key components:
