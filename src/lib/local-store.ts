@@ -69,3 +69,23 @@ export function deleteGoal(goalId: string) {
   const goals = readGoals().filter((g) => g.id !== goalId);
   writeGoals(goals);
 }
+
+export function getAllDeposits(): (Deposit & { goalId: string; goalName: string })[] {
+  const goals = readGoals();
+  const allDeposits: (Deposit & { goalId: string; goalName: string })[] = [];
+  
+  for (const goal of goals) {
+    for (const deposit of goal.deposits || []) {
+      allDeposits.push({
+        ...deposit,
+        goalId: goal.id,
+        goalName: goal.name,
+      });
+    }
+  }
+  
+  // Sort by timestamp
+  return allDeposits.sort((a, b) => 
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+}

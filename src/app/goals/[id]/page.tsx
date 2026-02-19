@@ -6,22 +6,33 @@ import { getGoalById } from "@/lib/local-store";
 import GoalDetailsClient from "@/components/goals/GoalDetailsClient";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { ArrowLeft, Loader2, Wallet, TrendingUp } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useWallet } from "@/contexts/WalletContext";
 
 export default function GoalPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
+  const { activeAddress, disconnectWallet } = useWallet();
 
   useEffect(() => {
+    if (!activeAddress) {
+      router.push("/");
+      return;
+    }
     const found = getGoalById(id);
     setGoal(found);
-  }, [id]);
+  }, [id, activeAddress, router]);
+
+  if (!activeAddress) {
+    return null;
+  }
 
   if (goal === undefined) {
     return (
-      <div className="container mx-auto flex items-center justify-center py-32">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -29,27 +40,69 @@ export default function GoalPage() {
 
   if (!goal) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-semibold">Goal not found</h2>
-        <p className="mt-2 text-muted-foreground">
-          This goal doesn't exist or was removed.
-        </p>
-        <Button asChild className="mt-6">
-          <Link href="/">Go Home</Link>
-        </Button>
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur">
+          <div className="container flex h-16 items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/dashboard">
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+              </Button>
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="font-bold">DhanSathi</span>
+              </div>
+            </div>
+            <Button onClick={disconnectWallet} variant="outline" size="sm">
+              <Wallet className="mr-2 h-4 w-4" />
+              {`${activeAddress.substring(0, 6)}...${activeAddress.substring(activeAddress.length - 4)}`}
+            </Button>
+          </div>
+        </header>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h2 className="text-2xl font-semibold">Goal not found</h2>
+          <p className="mt-2 text-muted-foreground">
+            This goal doesn't exist or was removed.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href="/dashboard">Go to Dashboard</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Button asChild variant="ghost" className="mb-4">
-        <Link href="/">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Link>
-      </Button>
-      <GoalDetailsClient goal={goal} />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="font-bold">DhanSathi</span>
+            </div>
+          </div>
+          <Button onClick={disconnectWallet} variant="outline" size="sm">
+            <Wallet className="mr-2 h-4 w-4" />
+            {`${activeAddress.substring(0, 6)}...${activeAddress.substring(activeAddress.length - 4)}`}
+          </Button>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        <GoalDetailsClient goal={goal} />
+      </div>
     </div>
   );
 }

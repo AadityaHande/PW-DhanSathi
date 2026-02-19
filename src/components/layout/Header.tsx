@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "./Logo";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, Download } from "lucide-react";
-import { useWallet } from "@/hooks/useWallet";
+import { useWallet } from "@/contexts/WalletContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export default function Header() {

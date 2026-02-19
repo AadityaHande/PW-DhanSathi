@@ -1,70 +1,78 @@
 'use server';
 /**
  * @fileOverview An AI agent that provides personalized congratulatory messages and micro-tips for savings achievements.
- *
- * - getAchievementCoachAdvice - A function that handles the generation of achievement-based advice.
- * - AchievementCoachInput - The input type for the getAchievementCoachAdvice function.
- * - AchievementCoachOutput - The return type for the getAchievementCoachAdvice function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai, isAIConfigured } from '@/ai/genkit';
 
-const AchievementCoachInputSchema = z.object({
-  achievementName: z.string().describe('The name of the achievement unlocked (e.g., "First Deposit", "50% Saver", "Goal Completed").'),
-  goalName: z.string().describe('The name of the savings goal.'),
-  currentSaved: z.number().describe('The current amount saved towards the goal.'),
-  targetAmount: z.number().describe('The target amount for the savings goal.'),
-  progressPercentage: z.number().describe('The current progress towards the goal in percentage (0-100).'),
-});
-export type AchievementCoachInput = z.infer<typeof AchievementCoachInputSchema>;
-
-const AchievementCoachOutputSchema = z.object({
-  congratulatoryMessage: z.string().describe('A personalized congratulatory message for unlocking the achievement, explaining the on-chain event in simple terms.'),
-  microTip: z.string().describe('A relevant micro-tip or next step to help the user continue their savings journey.'),
-});
-export type AchievementCoachOutput = z.infer<typeof AchievementCoachOutputSchema>;
-
-export async function getAchievementCoachAdvice(input: AchievementCoachInput): Promise<AchievementCoachOutput> {
-  return achievementCoachFlow(input);
+export interface AchievementCoachInput {
+  achievementName: string;
+  goalName: string;
+  currentSaved: number;
+  targetAmount: number;
+  progressPercentage: number;
 }
 
-const achievementCoachPrompt = ai.definePrompt({
-  name: 'achievementCoachPrompt',
-  input: {schema: AchievementCoachInputSchema},
-  output: {schema: AchievementCoachOutputSchema},
-  prompt: `You are an encouraging financial coach for students. Your goal is to motivate them by explaining their on-chain progress in simple, easy-to-understand language.
+export interface AchievementCoachOutput {
+  congratulatoryMessage: string;
+  microTip: string;
+}
 
-A student has just unlocked the "{{achievementName}}" milestone for their savings goal: "{{goalName}}". This is a permanent, verifiable event on the Algorand blockchain.
-
-Their current on-chain status is:
-- Saved: {{{currentSaved}}} ALGO
-- Target: {{{targetAmount}}} ALGO
-- Progress: {{{progressPercentage}}}%
-
-Based on this achievement:
-1.  Craft a personalized, congratulatory message. Explain what this milestone means and reassure them that their progress is permanently recorded and secured on the blockchain.
-2.  Provide a relevant, actionable micro-tip to help them continue saving.
-
-Example:
-Achievement: "First Deposit"
-Goal: "New Laptop"
-
-Congratulatory Message: "Incredible start! You've officially made your first deposit for your 'New Laptop' goal. This transaction is now a permanent part of your savings history on the Algorand blockchain, and a huge first step towards your target!"
-Micro Tip: "To keep the momentum going, try naming a day of the week 'Savings Sunday' and make a small deposit every week."`,
-});
-
-const achievementCoachFlow = ai.defineFlow(
-  {
-    name: 'achievementCoachFlow',
-    inputSchema: AchievementCoachInputSchema,
-    outputSchema: AchievementCoachOutputSchema,
+// Fallback messages when AI is not configured
+const FALLBACK_MESSAGES: Record<string, { message: string; tip: string }> = {
+  'First Deposit': {
+    message: "Amazing start! You've made your first deposit. This is now permanently recorded on the Algorand blockchain!",
+    tip: "Try setting up a weekly savings habit - even small amounts add up over time!"
   },
-  async input => {
-    const {output} = await achievementCoachPrompt(input);
-    if (!output) {
-      throw new Error('Failed to generate achievement coach advice.');
-    }
-    return output;
+  '50% Saver': {
+    message: "Halfway there! You've saved 50% of your goal. Your progress is secured on the blockchain!",
+    tip: "You're doing great! Consider increasing your deposits slightly to reach your goal faster."
+  },
+  'Goal Completed': {
+    message: "Congratulations! You've completed your savings goal! This achievement is permanently recorded on the Algorand blockchain!",
+    tip: "Consider setting a new goal to keep your savings momentum going!"
+  },
+  'default': {
+    message: "Great progress on your savings journey! Every deposit is securely recorded on the blockchain.",
+    tip: "Keep up the consistent saving - you're building a great financial habit!"
   }
-);
+};
+
+export async function getAchievementCoachAdvice(input: AchievementCoachInput): Promise<AchievementCoachOutput> {
+  // If AI is not configured, return fallback
+  if (!isAIConfigured || !ai) {
+    const fallback = FALLBACK_MESSAGES[input.achievementName] || FALLBACK_MESSAGES.default;
+    return {
+      congratulatoryMessage: fallback.message.replace('your goal', `your "${input.goalName}" goal`),
+      microTip: fallback.tip,
+    };
+  }
+
+  const prompt = `You are an encouraging financial coach for students. A student has just unlocked the "${input.achievementName}" milestone for their savings goal: "${input.goalName}".
+
+Current status:
+- Saved: ${input.currentSaved} ALGO
+- Target: ${input.targetAmount} ALGO
+- Progress: ${input.progressPercentage}%
+
+Generate:
+1. A congratulatory message (2-3 sentences) explaining this achievement and that it's recorded on the blockchain
+2. A relevant micro-tip to help them continue saving
+
+Respond in JSON format: {"congratulatoryMessage": "...", "microTip": "..."}`;
+
+  try {
+    const { text } = await ai.generate({ prompt });
+    const parsed = JSON.parse(text || '{}');
+    return {
+      congratulatoryMessage: parsed.congratulatoryMessage || FALLBACK_MESSAGES.default.message,
+      microTip: parsed.microTip || FALLBACK_MESSAGES.default.tip,
+    };
+  } catch (error) {
+    const fallback = FALLBACK_MESSAGES[input.achievementName] || FALLBACK_MESSAGES.default;
+    return {
+      congratulatoryMessage: fallback.message,
+      microTip: fallback.tip,
+    };
+  }
+}
