@@ -1,43 +1,54 @@
-import { db } from "@/lib/firebase";
+"use client";
+
+import { useEffect, useState } from "react";
 import type { Goal } from "@/lib/types";
-import { doc, getDoc } from "firebase/firestore";
-import { notFound } from "next/navigation";
+import { getGoalById } from "@/lib/local-store";
 import GoalDetailsClient from "@/components/goals/GoalDetailsClient";
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useParams } from "next/navigation";
 
-async function getGoal(id: string): Promise<Goal | null> {
-  const goalRef = doc(db, 'goals', id);
-  const goalSnap = await getDoc(goalRef);
+export default function GoalPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
 
-  if (!goalSnap.exists()) {
-    return null;
+  useEffect(() => {
+    const found = getGoalById(id);
+    setGoal(found);
+  }, [id]);
+
+  if (goal === undefined) {
+    return (
+      <div className="container mx-auto flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // The document from firestore only has metadata now
-  return { id: goalSnap.id, ...goalSnap.data() } as Goal;
-}
-
-type GoalPageProps = {
-  params: { id: string };
-};
-
-export default async function GoalPage({ params }: GoalPageProps) {
-  const goal = await getGoal(params.id);
-
   if (!goal) {
-    notFound();
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h2 className="text-2xl font-semibold">Goal not found</h2>
+        <p className="mt-2 text-muted-foreground">
+          This goal doesn't exist or was removed.
+        </p>
+        <Button asChild className="mt-6">
+          <Link href="/">Go Home</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-       <Button asChild variant="ghost" className="mb-4">
-         <Link href="/">
-           <ArrowLeft className="mr-2 h-4 w-4" />
-           Back to Dashboard
-         </Link>
-       </Button>
+      <Button asChild variant="ghost" className="mb-4">
+        <Link href="/">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Link>
+      </Button>
       <GoalDetailsClient goal={goal} />
     </div>
   );

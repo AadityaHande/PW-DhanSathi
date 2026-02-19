@@ -4,12 +4,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "./Logo";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet } from "lucide-react";
+import { Wallet, Download } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export default function Header() {
   const { toast } = useToast();
   const { activeAddress, isConnecting, connectWallet, disconnectWallet } = useWallet();
+  const { isInstallable, install } = usePWAInstall();
 
   const handleConnect = async () => {
     try {
@@ -38,6 +40,12 @@ export default function Header() {
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
+            {isInstallable && (
+              <Button onClick={install} variant="outline" size="sm" className="hidden sm:flex">
+                <Download className="mr-2 h-4 w-4" />
+                Install App
+              </Button>
+            )}
             {activeAddress ? (
                <Button onClick={disconnectWallet} variant="outline" size="sm">
                 <Wallet className="mr-2 h-4 w-4" />

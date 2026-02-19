@@ -139,13 +139,18 @@ def withdraw(*, output: abi.Address):
 
 # --- Bare Application Calls for Housekeeping ---
 # These allow for standard account interactions with the smart contract.
+# In Beaker 1.x the bare=True flag on @app.external handles calls with no ABI encoding.
 
-@app.bare_external(close_out=CallConfig.CALL)
+@app.external(close_out=CallConfig.CALL, bare=True)
 def close_out():
     # Allows an account that has opted-in to close out their local state. Not used in this contract.
     return Approve()
 
-@app.bare_external(clear_state=CallConfig.CALL)
-def clear_state():
+# The clear-state program runs when the app is force-cleared from an account.
+# Beaker 1.x exposes it via the application's clear_state property instead of
+# a bare_external decorator. We handle it at the Application level by compiling
+# the approval program with a simple Approve() for the clear path.
+@app.external(clear_state=CallConfig.CALL, bare=True)
+def clear_state_handler():
     # Handles the case where the contract is cleared from an account.
     return Approve()

@@ -22,16 +22,29 @@ export function formatCurrency(amount: number) {
     .replace("$", "ALGO ");
 }
 
+/**
+ * Converts any Firebase Timestamp | Date | string | number to a plain JS Date.
+ * Firebase Timestamps expose a `.toDate()` method; all other types are handled
+ * by the standard Date constructor.
+ */
+export function toDate(val: { toDate(): Date } | Date | string | number | null | undefined): Date {
+  if (!val) return new Date(0);
+  if (val instanceof Date) return val;
+  if (typeof val === 'number') return new Date(val);
+  if (typeof val === 'string') return new Date(val);
+  if (typeof (val as any).toDate === 'function') return (val as any).toDate();
+  return new Date(val as any);
+}
+
 export function formatDate(date: any) {
   if (!date) return "";
-  // Firebase Timestamps have a toDate() method, otherwise parse string or number
-  const dateObj = date.toDate ? date.toDate() : new Date(date);
+  const dateObj = toDate(date);
   return formatFns(dateObj, "MMM d, yyyy");
 }
 
-export function formatDateFromTimestamp(timestamp: number | Date | string) {
+export function formatDateFromTimestamp(timestamp: { toDate(): Date } | number | Date | string | null | undefined) {
     if (!timestamp) return "";
-    const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+    const date = toDate(timestamp);
     if (isNaN(date.getTime())) return "Invalid Date";
     return formatFns(date, "MMM d, yyyy");
 }

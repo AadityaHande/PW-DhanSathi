@@ -16,7 +16,7 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { useWallet } from "@/hooks/useWallet";
 import { deployGoalContract } from "@/lib/blockchain";
-import { saveGoalMetadata } from "@/lib/actions";
+import { saveGoal } from "@/lib/local-store";
 import { useRouter } from "next/navigation";
 
 const CreateGoalSchema = z.object({
@@ -37,7 +37,7 @@ export default function CreateGoalForm() {
     resolver: zodResolver(CreateGoalSchema),
     defaultValues: {
       name: "",
-      targetAmount: undefined,
+      targetAmount: "" as unknown as number, // Empty string to avoid uncontrolled->controlled warning
       deadline: undefined
     },
   });
@@ -65,7 +65,7 @@ export default function CreateGoalForm() {
 
       toast({ title: "Contract Deployed!", description: `App ID: ${appId}. Now saving metadata...` });
 
-      await saveGoalMetadata({
+      saveGoal({
         name: data.name,
         appId,
       });

@@ -24,20 +24,74 @@ export async function disconnectWalletSession() {
     await peraWallet.disconnect();
 }
 
+// ---------------------------------------------------------------------------
+// ABI Method Definitions for SavingsVault (mirrors contracts/app.py)
+// Beaker generates ABI-encoded method calls. Each method selector is the
+// first 4 bytes of the SHA-512/256 hash of its canonical signature string.
+// algosdk.ABIMethod.getSelector() computes this for us correctly.
+// ---------------------------------------------------------------------------
 
-// --- Smart Contract Deployment ---
-// NOTE: The approval and clear programs need to be compiled from your Beaker smart contract
-// using AlgoKit. Since this environment cannot run python, these are placeholders.
-// You MUST replace these empty Uint8Array values with your compiled TEAL code.
-const APPROVAL_PROGRAM = new Uint8Array();
-const CLEAR_PROGRAM = new Uint8Array();
-// In a real app, you would load this from the compiled artifacts, e.g.:
-// import * as fs from 'fs';
-// const APPROVAL_PROGRAM = new Uint8Array(fs.readFileSync('./contracts/build/approval.teal.tok'));
-// const CLEAR_PROGRAM = new Uint8Array(fs.readFileSync('./contracts/build/clear.teal.tok'));
+const createGoalMethod = new algosdk.ABIMethod({
+    name: "create_goal",
+    args: [
+        { type: "address", name: "owner" },
+        { type: "uint64",  name: "target" },
+        { type: "uint64",  name: "deadline_ts" },
+    ],
+    returns: { type: "void" },
+});
+
+// deposit(pay)void — the payment txn is a "transaction argument" and must
+// appear in the group IMMEDIATELY BEFORE the app-call txn (ARC-4 §2.3).
+const depositMethod = new algosdk.ABIMethod({
+    name: "deposit",
+    args: [{ type: "pay", name: "payment" }],
+    returns: { type: "void" },
+});
+
+const withdrawMethod = new algosdk.ABIMethod({
+    name: "withdraw",
+    args: [],
+    returns: { type: "void" },
+});
+
+// ---------------------------------------------------------------------------
+// Smart Contract Deployment
+// ---------------------------------------------------------------------------
+// The APPROVAL_PROGRAM and CLEAR_PROGRAM must be compiled from contracts/app.py
+// using AlgoKit: run `algokit compile py contracts/app.py` then paste the
+// resulting base64 strings below (or load from artifacts/).
+//
+// To compile:
+//   pip install beaker-pyteal>=1.0.0 pyteal>=0.26.1
+//   python -c "
+//     from contracts.app import app
+//     import base64, json, pathlib
+//     spec = app.build()
+//     pathlib.Path('contracts/build').mkdir(exist_ok=True)
+//     pathlib.Path('contracts/build/approval.b64').write_text(
+//       base64.b64encode(spec.approval_program).decode())
+//     pathlib.Path('contracts/build/clear.b64').write_text(
+//       base64.b64encode(spec.clear_program).decode())
+//   "
+// Then replace the empty strings below with the file contents.
+const APPROVAL_B64 = "CCACAQAmBgpnb2FsX293bmVyC3RvdGFsX3NhdmVkDmdvYWxfY29tcGxldGVkCGRlYWRsaW5lBOSoxwANdGFyZ2V0X2Ftb3VudDEYIxJAACQ2GgAnBBJAACU2GgCABDYl5OsSQAAyNhoAgAS3NV/REkAAWQA2GgAnBBJEQgAAKDYaAWcnBTYaAhdnKzYaAxdnKSNnKiNnIkMxAChkEkQyBytkDEQqZCMSRDEWIgk4BzIKEkQpKWQxFiIJOAgIZylkJwVkD0EAAyoiZyJDMQAoZBJEKmQiEjIHK2QPEUSxIrIQKGSyByOyCCOyAShksgmzIkM=";
+const CLEAR_B64    = "CIEB";
+
+function loadProgram(b64: string): Uint8Array {
+    if (!b64) return new Uint8Array(0);
+    return new Uint8Array(Buffer.from(b64, "base64"));
+}
+
+const APPROVAL_PROGRAM = loadProgram(APPROVAL_B64);
+const CLEAR_PROGRAM    = loadProgram(CLEAR_B64);
 
 if (APPROVAL_PROGRAM.length === 0 || CLEAR_PROGRAM.length === 0) {
-    console.warn("WARNING: Smart contract TEAL programs are not loaded. Deployment will fail. Replace placeholder arrays in src/lib/blockchain.ts with your compiled TEAL code.");
+    console.warn(
+        "⚠️  AlgoSave: Smart-contract TEAL programs are missing.\n" +
+        "   Compile contracts/app.py and add the base64 output to\n" +
+        "   APPROVAL_B64 / CLEAR_B64 in src/lib/blockchain.ts"
+    );
 }
 
 export async function deployGoalContract(
@@ -47,15 +101,26 @@ export async function deployGoalContract(
 ): Promise<number> {
 
     if (APPROVAL_PROGRAM.length === 0 || CLEAR_PROGRAM.length === 0) {
-        throw new Error("Smart contract TEAL code is missing. Please compile your contract and add it to src/lib/blockchain.ts");
+        throw new Error(
+            "Smart contract TEAL code is missing. " +
+            "Compile contracts/app.py and paste the base64 output into " +
+            "APPROVAL_B64 / CLEAR_B64 in src/lib/blockchain.ts"
+        );
     }
 
     const suggestedParams = await algodClient.getTransactionParams().do();
-    const appArgs = [
-        algosdk.decodeAddress(senderAddress).publicKey,
-        algosdk.encodeUint64(args.targetAmount * 1_000_000), // Convert ALGO to microALGO
-        algosdk.encodeUint64(Math.floor(args.deadline.getTime() / 1000)), // Convert to Unix timestamp
-    ];
+
+    // --- ABI-encode the create_goal arguments ---
+    // Beaker 1.x routes the create transaction via the ABI method selector +
+    // ABI-encoded arguments, so we must include them in appArgs.
+    const selector = createGoalMethod.getSelector(); // Uint8Array[4]
+
+    const addressType = new algosdk.ABIAddressType();
+    const uint64Type  = new algosdk.ABIUintType(64);
+
+    const encodedOwner    = addressType.encode(senderAddress);
+    const encodedTarget   = uint64Type.encode(BigInt(Math.round(args.targetAmount * 1_000_000)));
+    const encodedDeadline = uint64Type.encode(BigInt(Math.floor(args.deadline.getTime() / 1000)));
 
     const createTxn = algosdk.makeApplicationCreateTxnFromObject({
         from: senderAddress,
@@ -63,32 +128,31 @@ export async function deployGoalContract(
         onComplete: algosdk.OnApplicationComplete.NoOpOC,
         approvalProgram: APPROVAL_PROGRAM,
         clearProgram: CLEAR_PROGRAM,
-        numGlobalInts: 4, // total_saved, target_amount, deadline, goal_completed
-        numGlobalByteSlices: 1, // goal_owner
+        numGlobalInts: 4,          // total_saved, target_amount, deadline, goal_completed
+        numGlobalByteSlices: 1,    // goal_owner
         numLocalInts: 0,
         numLocalByteSlices: 0,
-        appArgs,
+        appArgs: [selector, encodedOwner, encodedTarget, encodedDeadline],
     });
 
-    const signedTxns = await signTransactions([createTxn]);
-    const { txId } = await algodClient.sendRawTransaction(signedTxns).do();
-    const result = await algosdk.waitForConfirmation(algodClient, txId, 4);
+    const [signedCreate] = await signTransactions([createTxn]);
+    const { txId: createTxId } = await algodClient.sendRawTransaction(signedCreate).do();
+    const result = await algosdk.waitForConfirmation(algodClient, createTxId, 4);
 
-    const appId = result["application-index"];
-    if (appId === undefined) {
-        throw new Error("Could not get App ID from deployment transaction.");
-    }
-    
-    // Fund the contract with a minimum balance
-    const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+    const appId: number = result["application-index"];
+    if (!appId) throw new Error("Could not get App ID from deployment transaction.");
+
+    // Fund the new contract account with its minimum balance requirement (0.1 ALGO).
+    // This must be done AFTER deployment so we know the application address.
+    const fundTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
         from: senderAddress,
         to: algosdk.getApplicationAddress(appId),
-        amount: 100000, // 0.1 ALGO for min balance
+        amount: 100_000, // 0.1 ALGO in microALGOs
         suggestedParams,
     });
-    
-    const signedPaymentTxn = await signTransactions([paymentTxn]);
-    await algodClient.sendRawTransaction(signedPaymentTxn).do();
+
+    const [signedFund] = await signTransactions([fundTxn]);
+    await algodClient.sendRawTransaction(signedFund).do();
 
     return appId;
 }
@@ -104,23 +168,27 @@ export async function depositToGoal(
 ): Promise<string> {
     const suggestedParams = await algodClient.getTransactionParams().do();
 
+    // ARC-4 §2.3: transaction-type arguments must appear in the group
+    // IMMEDIATELY BEFORE the app-call transaction.
+    const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+        from: senderAddress,
+        to: algosdk.getApplicationAddress(appId),
+        amount: Math.round(amount * 1_000_000), // ALGO → microALGO
+        suggestedParams,
+    });
+
     const appCallTxn = algosdk.makeApplicationNoOpTxnFromObject({
         from: senderAddress,
         suggestedParams,
         appIndex: appId,
-        appArgs: [new TextEncoder().encode("deposit")],
+        // Only the 4-byte ABI method selector; the payment txn is implicit.
+        appArgs: [depositMethod.getSelector()],
     });
 
-    const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: senderAddress,
-        to: algosdk.getApplicationAddress(appId),
-        amount: amount * 1_000_000, // Convert ALGO to microALGO
-        suggestedParams,
-    });
+    // Group: [payment, appCall] — payment MUST precede the app call.
+    algosdk.assignGroupID([paymentTxn, appCallTxn]);
 
-    algosdk.assignGroupID([appCallTxn, paymentTxn]);
-
-    const signedTxns = await signTransactions([appCallTxn, paymentTxn]);
+    const signedTxns = await signTransactions([paymentTxn, appCallTxn]);
     const { txId } = await algodClient.sendRawTransaction(signedTxns).do();
     await algosdk.waitForConfirmation(algodClient, txId, 4);
 
@@ -133,20 +201,19 @@ export async function withdrawFromGoal(
     signTransactions: (txns: Transaction[]) => Promise<Uint8Array[]>
 ): Promise<string> {
     const suggestedParams = await algodClient.getTransactionParams().do();
-    // We need to pay for the inner transaction, so add a fee
+    // Cover the inner-transaction fee with an elevated outer fee.
     suggestedParams.fee = 2 * algosdk.ALGORAND_MIN_TX_FEE;
     suggestedParams.flatFee = true;
-
 
     const appCallTxn = algosdk.makeApplicationNoOpTxnFromObject({
         from: senderAddress,
         suggestedParams,
         appIndex: appId,
-        appArgs: [new TextEncoder().encode("withdraw")],
+        appArgs: [withdrawMethod.getSelector()],
     });
 
-    const signedTxns = await signTransactions([appCallTxn]);
-    const { txId } = await algodClient.sendRawTransaction(signedTxns).do();
+    const [signedTxn] = await signTransactions([appCallTxn]);
+    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
     await algosdk.waitForConfirmation(algodClient, txId, 4);
     return txId;
 }
@@ -168,7 +235,7 @@ export async function getGoalOnChainState(appId: number): Promise<OnChainGoal> {
         const appInfo = await algodClient.getApplicationByID(appId).do();
         const globalState = appInfo.params["global-state"];
 
-        const state = globalState.reduce((acc, curr) => {
+        const state = globalState.reduce((acc: Record<string, any>, curr: any) => {
             const key = atob(curr.key);
             const value = curr.value;
             if (value.type === 1) { // byte slice

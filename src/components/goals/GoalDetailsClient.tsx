@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDateFromTimestamp, microAlgosToAlgos } from '@/lib/utils';
-import { Calendar, Target, PiggyBank, Award, CheckCircle2, History, BotMessage, Milestone, Wallet, AlertTriangle, ExternalLink, HeartPulse, Lock } from 'lucide-react';
+import { formatCurrency, formatDateFromTimestamp, microAlgosToAlgos, toDate } from '@/lib/utils';
+import { Calendar, Target, PiggyBank, Award, CheckCircle2, History, Bot, Milestone, Wallet, AlertTriangle, ExternalLink, HeartPulse, Lock } from 'lucide-react';
 import { DepositDialog } from './DepositDialog';
 import { SavingsChart } from './SavingsChart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { calculateFinancialHealth } from '@/lib/financial-health';
 import { FinancialHealthIndicator } from './FinancialHealthIndicator';
+import { getGoalById } from '@/lib/local-store';
 
 type GoalDetailsClientProps = {
   goal: Goal;
@@ -48,9 +49,9 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
       const data = await getGoalOnChainState(goal.appId);
       setOnChainGoal(data);
       
-      const goalRes = await fetch(`/api/goal/${goal.id}`);
-      if (goalRes.ok) {
-        const updatedGoal = await goalRes.json();
+      // Reload goal from localStorage
+      const updatedGoal = getGoalById(goal.id);
+      if (updatedGoal) {
         setGoal(updatedGoal);
 
         if (updatedGoal.deposits && updatedGoal.deposits.length > 0) {
@@ -155,8 +156,8 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
   const status = onChainGoal.goalCompleted ? "completed" : "active";
   
   const sortedDeposits = Array.isArray(goal.deposits) ? [...goal.deposits].sort((a, b) => {
-      const dateA = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp).getTime();
-      const dateB = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime();
+      const dateA = toDate(a.timestamp).getTime();
+      const dateB = toDate(b.timestamp).getTime();
       return dateB - dateA;
   }) : [];
   
@@ -184,10 +185,10 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
                 <Calendar className="mr-2 h-4 w-4" />
                 Deadline: {formatDateFromTimestamp(onChainGoal.deadline)}
               </CardDescription>
-               <CardDescription className="mt-1 flex items-center text-xs">
+               <div className="mt-1 flex items-center text-xs text-muted-foreground">
                  <Badge variant="outline">App ID: {goal.appId}</Badge>
                  <Badge variant="outline" className="ml-2">Network: Testnet</Badge>
-              </CardDescription>
+              </div>
             </div>
              <Badge
               variant={status === 'completed' ? 'default' : 'secondary'}
@@ -362,7 +363,7 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
            {achievements.length > 0 && (
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center"><BotMessage className="mr-2" /> AI Coach</CardTitle>
+                    <CardTitle className="flex items-center"><Bot className="mr-2" /> AI Coach</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {achievementInfo && !isLoadingAdvice ? (

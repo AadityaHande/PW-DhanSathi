@@ -10,6 +10,20 @@
 !.yarn/releases
 !.yarn/versions
 
+# Python
+.venv/
+.venv-1/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
 # testing
 /coverage
 
@@ -23,6 +37,8 @@
 # misc
 .DS_Store
 *.pem
+.idx/
+.modified
 
 # debug
 npm-debug.log*
@@ -43,3 +59,17 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# next-pwa generated files
+public/sw.js
+public/workbox-*.js
+public/sw.js.map
+public/workbox-*.js.map
+public/worker-*.js
+public/worker-*.js.map
+public/fallback-*.js
+
+# Smart contract build artifacts
+contracts/build/
+*.teal.tok
+*.teal.log

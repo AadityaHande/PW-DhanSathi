@@ -1,0 +1,18 @@
+[ ] Install AlgoKit: Ensure you have AlgoKit and its prerequisites (like Python and Docker) installed on your local machine.
+[ ] Install Python Dependencies: Navigate to the contracts/ directory and run pip install -r requirements.txt to install Beaker and PyTEAL.
+[ ] Compile the Smart Contract: Run the algokit build command. This will create a contracts/build/ directory containing the compiled approval.teal and clear.teal files.
+[ ] Update Frontend with TEAL Code: Open src/lib/blockchain.ts. Manually copy the entire content from contracts/build/approval.teal and contracts/build/clear.teal and paste them into the APPROVAL_PROGRAM and CLEAR_PROGRAM variables. This is a mandatory step for the app to function.
+[ ] Install Frontend Dependencies: In the project's root directory, run npm install to get all the necessary packages for the Next.js app.
+[ ] Configure Environment Variables: Create a .env file in the root directory and add your Firebase project configuration keys (e.g., NEXT_PUBLIC_FIREBASE_API_KEY, etc.).
+[ ] Host the Frontend: Deploy the Next.js application to a public hosting provider like Vercel or Netlify to get a live, shareable URL.
+[ ] Make GitHub Repository Public: Go to your GitHub repository settings and ensure its visibility is set to "Public".
+[ ] Record the Demo Video: Create your 2-3 minute demo video following the required flow: introduce the problem, show the UI, create a goal, make a deposit (showing the Pera Wallet popup), show the on-chain data (App ID, transaction hash), and explain the "Discipline-as-a-Service" concept.
+[ ] Post Video to LinkedIn: Upload your demo video to LinkedIn. Make sure the post is public and tag the official RIFT hackathon page.
+[ ] Finalize the README.md: Edit the README.md file in your repository and replace all [PLACEHOLDER] text with your actual information:
+The live hosted app URL.
+The public link to your LinkedIn demo video.
+A sample App ID from one of your deployed Testnet contracts.
+The link to that App ID on the Pera Testnet Explorer.
+Your GitHub repository URL.
+[ ] Verify All Links: Double-check that all links in your README.md (live app, video, explorer) are correct and publicly accessible.
+[ ] Submit the Project: Go to the official hackathon submission portal and provide your public GitHub repository link.

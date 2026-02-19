@@ -19,7 +19,7 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { useWallet } from "@/hooks/useWallet";
 import { depositToGoal } from "@/lib/blockchain";
-import { addDeposit } from "@/lib/actions";
+import { addDepositToGoal } from "@/lib/local-store";
 
 type DepositDialogProps = {
   goalId: string;
@@ -45,7 +45,7 @@ export function DepositDialog({ goalId, goalName, appId, onDepositSuccess, trigg
   const form = useForm<DepositFormValues>({
     resolver: zodResolver(DepositSchema),
     defaultValues: {
-      amount: initialAmount || undefined,
+      amount: initialAmount || ("" as unknown as number),
     }
   });
 
@@ -72,18 +72,12 @@ export function DepositDialog({ goalId, goalName, appId, onDepositSuccess, trigg
 
       toast({ title: "Deposit Successful!", description: "Your transaction has been confirmed." });
 
-      const formData = new FormData();
-      formData.append("goalId", goalId);
-      formData.append("appId", String(appId));
-      formData.append("amount", String(data.amount));
-      formData.append("sender", activeAddress);
-      formData.append("txId", txId);
-
-      await addDeposit(null, formData);
+      // Save deposit to local storage
+      addDepositToGoal(goalId, { amount: data.amount, txId });
       
       onDepositSuccess();
       setIsOpen(false);
-      form.reset({ amount: undefined });
+      form.reset({ amount: "" as unknown as number });
 
     } catch (error) {
       console.error(error);

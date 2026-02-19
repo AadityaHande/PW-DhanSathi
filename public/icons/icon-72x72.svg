@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <rect width="72" height="72" rx="11" fill="#3498db"/>
+  <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="23" fill="white">A$</text>
+  <text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="9" fill="rgba(255,255,255,0.85)">AlgoSave</text>
+</svg>

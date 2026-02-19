@@ -9,6 +9,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Goal } from "@/lib/types"
+import { toDate } from "@/lib/utils"
 
 const chartConfig = {
   savings: {
@@ -29,7 +30,7 @@ export function SavingsChart({ goal }: SavingsChartProps) {
     const dataPoints = goal.deposits
       .map(deposit => ({ // ensure dates are Date objects
           ...deposit,
-          timestamp: deposit.timestamp instanceof Date ? deposit.timestamp : new Date(deposit.timestamp)
+          timestamp: toDate(deposit.timestamp)
       }))
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       .map(deposit => {
@@ -41,7 +42,7 @@ export function SavingsChart({ goal }: SavingsChartProps) {
       });
     
     // Add initial point
-    const createdAtDate = goal.createdAt instanceof Date ? goal.createdAt : new Date(goal.createdAt);
+    const createdAtDate = toDate(goal.createdAt);
     const startPoint = {
         date: createdAtDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         savings: 0,

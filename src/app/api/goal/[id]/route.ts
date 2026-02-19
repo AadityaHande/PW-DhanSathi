@@ -27,10 +27,10 @@ const serializeTimestamps = (data: any): any => {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     if (!id) {
        return NextResponse.json({ error: "Goal ID is required" }, { status: 400 });
     }

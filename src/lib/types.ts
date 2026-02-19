@@ -1,18 +1,16 @@
-import type { Timestamp } from "firebase/firestore";
-
-// This is what is stored in Firebase. It's metadata for the on-chain goal.
+// This is what is stored locally. It's metadata for the on-chain goal.
 export interface Goal {
   id: string;
   name: string;
   appId: number;
-  createdAt: Timestamp | string; // Allow string for serialized data
+  createdAt: any; // ISO string or Timestamp
   // This is a cache for chart history, not the source of truth for savings.
   deposits: Deposit[];
 }
 
 export interface Deposit {
   amount: number; // in ALGOs
-  timestamp: Timestamp | string; // Allow string for serialized data
+  timestamp: any; // ISO string or Timestamp
   txId: string;
 }
 
