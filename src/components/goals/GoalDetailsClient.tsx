@@ -150,6 +150,7 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
     setIsMintingNFT(true);
     try {
       toast({ title: "Minting NFT", description: "Please check your wallet to approve the transaction." });
+      const mintedAt = new Date().toISOString();
       const result = await mintGoalAchievementNFT(
         activeAddress,
         goal.name,
@@ -158,7 +159,7 @@ export default function GoalDetailsClient({ goal: initialGoal }: GoalDetailsClie
         onChainGoal.totalSaved,
         signTransactions,
       );
-      const nft: GoalNFT = { assetId: result.assetId, txId: result.txId, mintedAt: new Date().toISOString() };
+      const nft: GoalNFT = { assetId: result.assetId, txId: result.txId, mintedAt };
       saveGoalNFT(goal.id, nft);
       setGoalNFT(nft);
       setLatestTxId(result.txId);

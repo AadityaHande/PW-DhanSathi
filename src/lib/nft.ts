@@ -33,6 +33,7 @@ export function buildARC3Metadata(params: {
   targetAmountMicroAlgos: number;
   totalSavedMicroAlgos: number;
   appId: number;
+  completedAt: string;
 }): ARC3Metadata {
   return {
     name: `DhanSathi: ${params.goalName}`,
@@ -43,7 +44,7 @@ export function buildARC3Metadata(params: {
       target_amount_microalgos: params.targetAmountMicroAlgos,
       total_saved_microalgos: params.totalSavedMicroAlgos,
       app_id: params.appId,
-      completed_at: new Date().toISOString(),
+      completed_at: params.completedAt,
     },
   };
 }
@@ -79,6 +80,7 @@ export async function mintGoalAchievementNFT(
     targetAmountMicroAlgos,
     totalSavedMicroAlgos,
     appId,
+    completedAt: new Date().toISOString(),
   });
 
   // Encode metadata as JSON note (ARC-3 convention)
@@ -87,8 +89,12 @@ export async function mintGoalAchievementNFT(
 
   const suggestedParams = await algodClient.getTransactionParams().do();
 
-  // Truncate asset name to 32 bytes (Algorand limit)
-  const assetName = `DhanSathi: ${goalName}`.substring(0, 32);
+  // Truncate asset name to fit Algorand's 32-byte limit (UTF-8 safe)
+  const encoder = new TextEncoder();
+  let assetName = `DhanSathi: ${goalName}`;
+  while (encoder.encode(assetName).length > 32) {
+    assetName = assetName.slice(0, -1);
+  }
 
   // Create the ASA (Algorand Standard Asset) as an ARC-3 NFT
   const createTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
@@ -101,11 +107,8 @@ export async function mintGoalAchievementNFT(
     assetName,
     assetURL: "template-ipfs://{ipfscid:1:raw:reserve:sha2-256}#arc3",
     note,
-    // Manager/reserve/freeze/clawback set to sender (can be cleared later)
     manager: senderAddress,
     reserve: senderAddress,
-    freeze: undefined,
-    clawback: undefined,
   });
 
   const [signedTxn] = await signTransactions([createTxn]);
