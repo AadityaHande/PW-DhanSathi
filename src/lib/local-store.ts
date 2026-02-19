@@ -1,9 +1,10 @@
 // Local storage-based goal store — replaces Firebase when it is unreachable.
 // Runs entirely in the browser; the data structure mirrors the Firestore schema.
 
-import type { Goal, Deposit } from "./types";
+import type { Goal, Deposit, GoalNFT } from "./types";
 
 const GOALS_KEY = "algosave_goals";
+const NFTS_KEY = "algosave_nfts";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,4 +89,33 @@ export function getAllDeposits(): (Deposit & { goalId: string; goalName: string 
   return allDeposits.sort((a, b) => 
     new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
+}
+
+// ── NFT storage ──────────────────────────────────────────────────────────────
+
+function readNFTs(): Record<string, GoalNFT> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(NFTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNFTs(nfts: Record<string, GoalNFT>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NFTS_KEY, JSON.stringify(nfts));
+}
+
+/** Save a minted NFT record, keyed by goal ID. */
+export function saveGoalNFT(goalId: string, nft: GoalNFT) {
+  const nfts = readNFTs();
+  nfts[goalId] = nft;
+  writeNFTs(nfts);
+}
+
+/** Retrieve the NFT record for a goal, or null if not minted yet. */
+export function getGoalNFT(goalId: string): GoalNFT | null {
+  return readNFTs()[goalId] ?? null;
 }

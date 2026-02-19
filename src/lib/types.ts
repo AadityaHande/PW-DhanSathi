@@ -28,3 +28,10 @@ export interface OnChainGoal {
 export type GoalWithOnChainData = Goal & {
   onChain: OnChainGoal;
 };
+
+// Represents a minted achievement NFT linked to a goal.
+export interface GoalNFT {
+  assetId: number;
+  txId: string;
+  mintedAt: string; // ISO string
+}
