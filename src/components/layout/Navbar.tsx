@@ -14,6 +14,8 @@ import {
   Moon,
   TrendingUp,
   X,
+  Users,
+  Trophy,
 } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { useTheme } from "next-themes";
@@ -37,6 +39,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals/new", label: "Goals", icon: Target },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/groups", label: "Groups", icon: Users },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/advisor", label: "AI Advisor", icon: Bot },
 ];
 
@@ -46,6 +50,12 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const isActive = (href: string) => {
+    if (href === "/goals/new") return pathname.startsWith("/goals") && !pathname.startsWith("/groups");
+    if (href === "/groups") return pathname.startsWith("/groups");
+    return pathname === href;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -72,9 +82,9 @@ export default function Navbar() {
 
           <nav className="flex items-center space-x-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href === "/goals/new" && pathname.startsWith("/goals"));
+              const active = isActive(item.href);
               return (
-                <Link key={item.href} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors", isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
+                <Link key={item.href} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors", active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
                   <item.icon className="h-4 w-4" />
                   {item.label}
                 </Link>
@@ -123,7 +133,7 @@ export default function Navbar() {
                   <nav className="flex-1 p-4 space-y-2">
                     {navItems.map((item) => (
                       <SheetClose asChild key={item.href}>
-                        <Link href={item.href} className={cn("flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors", (pathname === item.href || (item.href === "/goals/new" && pathname.startsWith("/goals"))) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
+                        <Link href={item.href} className={cn("flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors", isActive(item.href) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary")}>
                           <item.icon className="h-5 w-5" />
                           {item.label}
                         </Link>
@@ -146,11 +156,11 @@ export default function Navbar() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur md:hidden safe-area-pb">
-        <div className="max-w-7xl mx-auto grid grid-cols-4 h-16">
+        <div className="max-w-7xl mx-auto grid grid-cols-6 h-16">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors", (pathname === item.href || (item.href === "/goals/new" && pathname.startsWith("/goals"))) ? "text-primary" : "text-muted-foreground")}>
-              <item.icon className={cn("h-5 w-5", (pathname === item.href || (item.href === "/goals/new" && pathname.startsWith("/goals"))) && "text-primary")} />
-              <span>{item.label.split(" ")[0]}</span>
+            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 text-xs transition-colors", isActive(item.href) ? "text-primary" : "text-muted-foreground")}>
+              <item.icon className={cn("h-4 w-4", isActive(item.href) && "text-primary")} />
+              <span className="text-[10px]">{item.label.split(" ")[0]}</span>
             </Link>
           ))}
         </div>
