@@ -29,8 +29,8 @@ This hybrid model ensures a smooth user experience while guaranteeing the securi
 ## 4. Algorand App Details
 
 *   **Network:** Algorand Testnet
-*   **Sample App ID:** `[YOUR_DEPLOYED_APP_ID_HERE]`
-*   **Testnet Explorer Link:** `https://testnet.explorer.perawallet.app/applications/[YOUR_DEPLOYED_APP_ID_HERE]`
+*   **Deployed App ID (TestNet):** `755771019`
+*   **Testnet Explorer Link:** `https://testnet.explorer.perawallet.app/applications/755771019`
 
 ## 5. Architecture Overview
 
