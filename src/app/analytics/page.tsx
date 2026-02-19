@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
@@ -11,12 +12,16 @@ import {
   Calendar,
   Loader2,
   PieChart,
+  Sparkles,
+  Brain,
 } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { getAllGoals, getAllDeposits } from "@/lib/local-store";
 import { getGoalOnChainState } from "@/lib/blockchain";
 import type { GoalWithOnChainData } from "@/lib/types";
 import Navbar from "@/components/layout/Navbar";
+import { getSpendingInsights } from "@/ai/flows/ai-spending-insights-flow";
+import type { SpendingInsightsOutput } from "@/ai/flows/ai-spending-insights-flow";
 import {
   AreaChart,
   Area,
@@ -40,6 +45,8 @@ export default function AnalyticsPage() {
   const { activeAddress, isConnecting } = useWallet();
   const [goals, setGoals] = useState<GoalWithOnChainData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [aiInsights, setAiInsights] = useState<SpendingInsightsOutput | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
   // Redirect if not connected
   useEffect(() => {
@@ -89,6 +96,30 @@ export default function AnalyticsPage() {
 
   // All deposits
   const deposits = useMemo(() => getAllDeposits(), []);
+
+  const fetchAiInsights = useCallback(async () => {
+    if (!activeAddress) return;
+    setIsLoadingInsights(true);
+    try {
+      const totalSaved = goals.reduce((sum, g) => sum + (g.onChain?.totalSaved || 0) / 1_000_000, 0);
+      const totalTarget = goals.reduce((sum, g) => sum + (g.onChain?.targetAmount || 0) / 1_000_000, 0);
+      const completedGoals = goals.filter(g => g.onChain?.goalCompleted).length;
+      const activeGoals = goals.filter(g => !g.onChain?.goalCompleted).length;
+      const depositHistory = deposits.map(d => ({
+        amount: d.amount,
+        date: new Date(d.timestamp).toLocaleDateString(),
+        goalName: d.goalName,
+      }));
+      const result = await getSpendingInsights({
+        totalSaved, totalTarget, activeGoals, completedGoals, depositHistory,
+      });
+      setAiInsights(result);
+    } catch (err) {
+      console.error("Error fetching AI insights:", err);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  }, [activeAddress, goals, deposits]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -424,6 +455,85 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* AI Spending Insights */}
+            <Card className="bg-card border-border mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    AI Spending Insights
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={fetchAiInsights}
+                    disabled={isLoadingInsights || isLoading}
+                  >
+                    {isLoadingInsights ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                    )}
+                    {aiInsights ? "Refresh" : "Get Insights"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingInsights ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : aiInsights ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="h-16 w-16 rounded-full border-4 border-primary flex items-center justify-center shrink-0">
+                          <span className="text-xl font-bold">{aiInsights.savingsScore}</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold">Savings Score</p>
+                          <p className="text-xs text-muted-foreground">out of 100</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Analysis</p>
+                        <p className="text-sm">{aiInsights.insight}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                        <p className="text-sm font-semibold text-primary mb-1">💡 Top Tip</p>
+                        <p className="text-sm">{aiInsights.topTip}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground">Weekly Target</p>
+                          <p className="text-lg font-bold">{aiInsights.weeklyTarget} ALGO</p>
+                        </div>
+                        {aiInsights.projectedCompletion && !isNaN(new Date(aiInsights.projectedCompletion).getTime()) && (
+                          <div className="rounded-lg border p-3">
+                            <p className="text-xs text-muted-foreground">Projected Done</p>
+                            <p className="text-lg font-bold">
+                              {new Date(aiInsights.projectedCompletion).toLocaleDateString("en-US", {
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Brain className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p className="font-medium mb-1">Gemini AI Insights</p>
+                    <p className="text-sm">Click "Get Insights" to receive personalized AI analysis of your savings habits.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Transaction History */}
             <Card className="bg-card border-border">
