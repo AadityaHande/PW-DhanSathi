@@ -23,7 +23,9 @@ This hybrid model ensures a smooth user experience while guaranteeing the securi
 
 ## 3. Live Demo Links
 
-*   **Hosted App URL:** `[YOUR_HOSTED_URL_HERE]`
+Live App:
+https://pw-dhan-sathi.vercel.app
+
 *   **LinkedIn Demo Video:** `[YOUR_PUBLIC_LINKEDIN_VIDEO_URL_HERE]`
 
 ## 4. Algorand App Details
