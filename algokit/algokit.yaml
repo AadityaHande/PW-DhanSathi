@@ -1,0 +1,6 @@
+name: dhan-sathi-workspace
+type: workspace
+
+projects:
+  - name: savings
+    path: projects/savings
