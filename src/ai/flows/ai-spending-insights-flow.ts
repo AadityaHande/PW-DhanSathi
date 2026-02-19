@@ -75,13 +75,21 @@ JSON format: {"savingsScore": 75, "insight": "...", "topTip": "...", "weeklyTarg
 
   try {
     const { text } = await ai.generate({ prompt });
-    const parsed = JSON.parse(text || '{}');
+    let parsed: Record<string, unknown> = {};
+    try {
+      // Strip markdown code fences if present
+      const cleaned = (text || '').replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+      parsed = JSON.parse(cleaned || '{}');
+    } catch (parseErr) {
+      console.error('AI spending insights: JSON parse error', parseErr);
+      return getFallbackInsights(input);
+    }
     return {
       savingsScore: typeof parsed.savingsScore === 'number' ? Math.min(100, Math.max(0, parsed.savingsScore)) : getFallbackInsights(input).savingsScore,
-      insight: parsed.insight || getFallbackInsights(input).insight,
-      topTip: parsed.topTip || getFallbackInsights(input).topTip,
+      insight: typeof parsed.insight === 'string' ? parsed.insight : getFallbackInsights(input).insight,
+      topTip: typeof parsed.topTip === 'string' ? parsed.topTip : getFallbackInsights(input).topTip,
       weeklyTarget: typeof parsed.weeklyTarget === 'number' ? parsed.weeklyTarget : getFallbackInsights(input).weeklyTarget,
-      projectedCompletion: parsed.projectedCompletion,
+      projectedCompletion: typeof parsed.projectedCompletion === 'string' ? parsed.projectedCompletion : undefined,
     };
   } catch {
     return getFallbackInsights(input);

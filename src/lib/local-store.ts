@@ -154,10 +154,11 @@ export function getGroupByInviteCode(code: string): SavingsGroup | null {
 
 export function createGroup(data: Omit<SavingsGroup, "id" | "createdAt" | "inviteCode" | "members">): SavingsGroup {
   const groups = readGroups();
-  const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const uuid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  const inviteCode = uuid.replace(/-/g, "").slice(0, 6).toUpperCase();
   const newGroup: SavingsGroup = {
     ...data,
-    id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `group_${uuid}`,
     createdAt: new Date().toISOString(),
     inviteCode,
     members: [

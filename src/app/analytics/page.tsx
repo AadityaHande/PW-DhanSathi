@@ -511,7 +511,7 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-muted-foreground">Weekly Target</p>
                           <p className="text-lg font-bold">{aiInsights.weeklyTarget} ALGO</p>
                         </div>
-                        {aiInsights.projectedCompletion && (
+                        {aiInsights.projectedCompletion && !isNaN(new Date(aiInsights.projectedCompletion).getTime()) && (
                           <div className="rounded-lg border p-3">
                             <p className="text-xs text-muted-foreground">Projected Done</p>
                             <p className="text-lg font-bold">

@@ -21,6 +21,10 @@ import {
 import { getGoalOnChainState } from "@/lib/blockchain";
 import type { LeaderboardEntry } from "@/lib/types";
 
+const POINTS_PER_ALGO = 10;
+const POINTS_PER_COMPLETED_GOAL = 50;
+const POINTS_PER_ACTIVE_GOAL = 5;
+
 export default function LeaderboardPage() {
   const router = useRouter();
   const { activeAddress, isConnecting } = useWallet();
@@ -62,7 +66,7 @@ export default function LeaderboardPage() {
         }
       }
 
-      const score = Math.round(totalSaved * 10 + completedGoals * 50 + activeGoals * 5);
+      const score = Math.round(totalSaved * POINTS_PER_ALGO + completedGoals * POINTS_PER_COMPLETED_GOAL + activeGoals * POINTS_PER_ACTIVE_GOAL);
 
       upsertLeaderboardEntry({
         address: activeAddress,
@@ -261,7 +265,7 @@ export default function LeaderboardPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Scores: 10 pts/ALGO saved · 50 pts/completed goal · 5 pts/active goal
+          Scores: {POINTS_PER_ALGO} pts/ALGO saved · {POINTS_PER_COMPLETED_GOAL} pts/completed goal · {POINTS_PER_ACTIVE_GOAL} pts/active goal
         </p>
       </main>
     </div>
