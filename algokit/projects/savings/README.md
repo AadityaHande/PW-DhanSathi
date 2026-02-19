@@ -54,14 +54,24 @@ savings/
 # From repo root — install Python dependencies
 pip install -r contracts/requirements.txt
 
-# Compile the contract (generates TEAL + ARC-4 ABI spec)
-algokit compile python algokit/projects/savings/smart_contracts/savings_vault.py
+# Compile the contract (generates TEAL + base64 output in contracts/build/)
+python contracts/compile.py
 
-# Deploy to Testnet via AlgoKit Deploy
+# Deploy to Testnet via AlgoKit
+# Requires a funded Testnet account mnemonic in the DEPLOYER_MNEMONIC env var
+export DEPLOYER_MNEMONIC="word1 word2 ... word25"
 algokit deploy
 ```
 
-## Network
+> **Note:** `algokit deploy` reads `algokit.yaml` in this directory and runs
+> `python smart_contracts/deploy.py`, which connects to the public Algorand
+> Testnet endpoint and submits an `ApplicationCreate` transaction.
+> The new App ID is printed to stdout on success.
 
-- **Network:** Algorand Testnet
-- **Explorer:** [Pera Testnet Explorer](https://testnet.explorer.perawallet.app)
+## Deployed Contract
+
+| Field            | Value                                                                                                   |
+|------------------|---------------------------------------------------------------------------------------------------------|
+| **Network**      | Algorand Testnet                                                                                        |
+| **App ID**       | `755771019`                                                                                             |
+| **Explorer**     | [View on Pera Testnet Explorer](https://testnet.explorer.perawallet.app/applications/755771019)         |

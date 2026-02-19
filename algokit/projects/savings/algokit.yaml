@@ -7,4 +7,6 @@ build:
   command: algokit compile python smart_contracts/savings_vault.py
 
 deploy:
-  command: algokit deploy --network testnet
+  command: python smart_contracts/deploy.py
+  environment_secrets:
+    - DEPLOYER_MNEMONIC
