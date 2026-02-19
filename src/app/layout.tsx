@@ -1,19 +1,16 @@
-import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
-import './globals.css';
-import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
-import InstallPrompt from '@/components/pwa/InstallPrompt';
-import { Providers } from './providers';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "next-themes";
+import { WalletProvider } from "@/contexts/WalletContext";
+import { Toaster } from "@/components/ui/toaster";
+import Script from "next/script";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'DhanSathi | AI-Powered Financial Management',
-  description: 'A micro-savings goal tracker with AI-powered insights to help you achieve your financial goals on the Algorand blockchain.',
-  manifest: '/manifest.json',
-};
-
-export const viewport: Viewport = {
-  themeColor: '#0f1511',
+  title: "DhanSathi - AI-Powered Financial Management",
+  description: "Track your finances with AI-powered insights and secure your savings on the Algorand blockchain.",
 };
 
 export default function RootLayout({
@@ -24,54 +21,37 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="DhanSathi" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body
-        className={cn(
-          'min-h-screen bg-background font-body antialiased',
-        )}
-      >
-        <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <main className="flex-1">{children}</main>
-          </div>
-          <Toaster />
-          <InstallPrompt />
-        </Providers>
-        
-        {/* Google Translate */}
+        {/* Google Translate Widget */}
         <Script
-          src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
+          src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
         />
-        <Script id="google-translate-init" strategy="lazyOnload">
+        <Script id="google-translate-init" strategy="afterInteractive">
           {`
             function googleTranslateElementInit() {
-              new google.translate.TranslateElement({
-                pageLanguage: 'en',
-                includedLanguages: 'en,hi,bn,te,ta,mr,gu,kn,ml,pa,ur',
-                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-                autoDisplay: false
-              }, 'google_translate_element');
-              
-              // Also initialize mobile element if exists
+              if (document.getElementById('google_translate_element')) {
+                new window.google.translate.TranslateElement(
+                  { pageLanguage: 'en', layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE },
+                  'google_translate_element'
+                );
+              }
               if (document.getElementById('google_translate_element_mobile')) {
-                new google.translate.TranslateElement({
-                  pageLanguage: 'en',
-                  includedLanguages: 'en,hi,bn,te,ta,mr,gu,kn,ml,pa,ur',
-                  layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-                  autoDisplay: false
-                }, 'google_translate_element_mobile');
+                new window.google.translate.TranslateElement(
+                  { pageLanguage: 'en', layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE },
+                  'google_translate_element_mobile'
+                );
               }
             }
           `}
         </Script>
+      </head>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <WalletProvider>
+            {children}
+            <Toaster />
+          </WalletProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

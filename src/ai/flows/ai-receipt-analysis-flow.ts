@@ -3,7 +3,7 @@
  * @fileOverview An AI agent that analyzes a receipt image and suggests a micro-saving amount.
  */
 
-import { ai, isAIConfigured } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 
 export interface ReceiptAnalysisInput {
   imageDataUri: string;
@@ -26,16 +26,11 @@ function getFallbackAnalysis(goalName: string): ReceiptAnalysisOutput {
 export async function analyzeReceipt(
   input: ReceiptAnalysisInput
 ): Promise<ReceiptAnalysisOutput> {
-  // If AI is not configured, return fallback
-  if (!isAIConfigured || !ai) {
-    return getFallbackAnalysis(input.goalName);
-  }
-
-  const prompt = `You are a savings assistant. The user uploaded a receipt for their goal: "${input.goalName}".
+  const prompt = `You are a savings assistant. The user uploaded a receipt for their goal: \"${input.goalName}\".
 
 Suggest a micro-saving amount (0.5 to 2 ALGO) and give a short encouraging reason.
 
-Respond in JSON: {"suggestedAmount": 0.5, "reason": "..."}`;
+Respond in JSON: {\"suggestedAmount\": 0.5, \"reason\": \"...\"}`;
 
   try {
     const { text } = await ai.generate({

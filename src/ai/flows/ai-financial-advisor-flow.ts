@@ -35,18 +35,6 @@ function getFallbackResponse(message: string): string {
 }
 
 export async function getFinancialAdvice(input: FinancialAdviceInput) {
-  // If AI is not configured, return fallback responses
-  if (!isAIConfigured || !ai) {
-    return {
-      success: true,
-      data: {
-        response: getFallbackResponse(input.userMessage),
-        suggestions: ["How can I save more?", "Budgeting tips", "Set a goal"],
-        category: 'general' as const,
-      },
-    };
-  }
-
   const systemPrompt = `You are DhanSathi AI, a friendly and knowledgeable financial advisor specializing in personal savings and financial goal planning. You help users with:
 
 1. Savings Strategies: Tips on how to save more effectively
@@ -113,13 +101,6 @@ export async function getQuickSavingsTip(context?: {
   totalSaved?: number;
   progressPercent?: number;
 }) {
-  if (!isAIConfigured || !ai) {
-    return { 
-      success: true, 
-      tip: "Every small deposit brings you closer to your goal. Keep going!" 
-    };
-  }
-
   const prompt = `Generate a short, motivating savings tip (1-2 sentences) for a user who has saved ${context?.totalSaved?.toFixed(2) || 0} ALGO and is ${context?.progressPercent || 0}% towards their goal. Be encouraging and specific.`;
 
   try {

@@ -4,7 +4,7 @@
  * and a personalized savings plan based on a user's goal description.
  */
 
-import { ai, isAIConfigured } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 
 export interface AIGoalPlanningInput {
   goalDescription: string;
@@ -31,11 +31,6 @@ function getFallbackPlan(): AIGoalPlanningOutput {
 export async function aiGoalPlanning(
   input: AIGoalPlanningInput
 ): Promise<AIGoalPlanningOutput> {
-  // If AI is not configured, return fallback
-  if (!isAIConfigured || !ai) {
-    return getFallbackPlan();
-  }
-
   const prompt = `As an expert financial advisor, suggest a realistic savings plan for a student.
 
 Goal: ${input.goalDescription}
@@ -45,7 +40,7 @@ Provide:
 2. Deadline in YYYY-MM-DD format
 3. A weekly/monthly savings plan
 
-Respond in JSON format: {"suggestedTargetAmount": 5, "suggestedDeadline": "2026-05-01", "suggestedSavingsPlan": "..."}`;
+Respond in JSON format: {\"suggestedTargetAmount\": 5, \"suggestedDeadline\": \"2026-05-01\", \"suggestedSavingsPlan\": \"...\"}`;
 
   try {
     const { text } = await ai.generate({ prompt });
